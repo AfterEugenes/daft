@@ -1,4 +1,5 @@
 use clap::{Args, Parser, Subcommand, ValueEnum};
+use url::Url;
 
 // define Parser
 #[derive(Debug, Parser)]
@@ -11,7 +12,6 @@ use clap::{Args, Parser, Subcommand, ValueEnum};
 pub struct Cli {
     #[command(subcommand)]
     command: Command,
-    last_target: String,
 }
 
 // base commands
@@ -74,59 +74,78 @@ enum SetNewCommand {
     },
 }
 
-fn sanitize_target(&target: String) {
-    match &target:
 
+fn parse_target(target: &str) -> Result<Url, url::ParseError> {
+    let input = if target.contains("://") {
+        target.to_owned()
+    } else {
+        format!("http://{target}")
+    };
+
+    let url = Url::parse(&input)?;
+
+    if matches!(url.scheme(), "http" | "https"){
+        Ok(url)
+    } else {
+        Err(url::ParseError::RelativeUrlWithoutBase)
+    }
 }
 
 impl Cli {
     pub fn execute(&self) {
         match &self.command {
             Command::Scan(args) => {
-                println!("Complete target: {}", args.target);
+                let target_url = match parse_target(&args.target) {
+                    Ok(url) => url,
+                    Err(error) => {println!("Error while parsing: {error}.");return}
+                };
+                println!("Scan, sanitized target: {}", target_url.as_str());
                 match args.mode {
                     ScanMode::Files => {
-                        println!("Files scan: {}", args.target);
+                        println!("Files scan");
                     }
                     ScanMode::Dirs => {
-                        println!("Dirs scan: {}", args.target);
+                        println!("Dirs scan");
                     }
                     ScanMode::Subs => {
-                        println!("Subs scan: {}", args.target);
+                        println!("Subs scan");
                     }
                     ScanMode::Nmap => {
-                        println!("Nmap scan: {}", args.target);
+                        println!("Nmap scan");
                     }
                     ScanMode::Endpoint => {
-                        println!("Endpoint scan: {}", args.target);
+                        println!("Endpoint scan");
                     }
                     ScanMode::Recon => {
-                        println!("Recon scan: {}", args.target);
+                        println!("Recon scan");
                     }
                 };
             },
 
             Command::Show(args) => {
-                println!("Complete target: {}", args.target);
+                let target_url = match parse_target(&args.target) {
+                    Ok(url) => url,
+                    Err(error) => {println!("Error while parsing: {error}.");return}
+                };
+                println!("Show, sanitized target : {}", target_url);
                 match args.mode {
                     DisplayMode::All => {
-                        println!("Displaying all: {}", args.target);
+                        println!("Show all");
                     }
                     DisplayMode::Files => {
-                        println!("Displaying Files: {}", args.target);
+                        println!("Show files");
                     }
                     DisplayMode::Dirs => {
-                        println!("Displaying Dirs: {}", args.target);
+                        println!("Show dirs");
                     }
                     DisplayMode::Subs => {
-                        println!("Displaying Subs: {}", args.target);
+                        println!("Show subs");
                     }
                     DisplayMode::Nmap => {
-                        println!("Displaying Nmap: {}", args.target);
+                        println!("Show nmap");
                     }
                 };
             },
-
             Command::Set { command } => match command {
                 SetCommand::New { command } => match command {
                     SetNewCommand::Scan { scan } => {
